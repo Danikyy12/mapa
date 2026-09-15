@@ -50,16 +50,35 @@
             position: absolute; top: 20px; right: 20px; z-index: 10000;
             background: rgba(19, 15, 30, 0.95); color: #ffffff; padding: 15px;
             border-radius: 8px; border: 1px solid rgba(138, 43, 226, 0.6);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.9); max-height: 80vh;
-            min-width: 200px; overflow-y: auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.9);
+            min-width: 220px;
         }
         .legend-title-bar {
             display: flex; justify-content: space-between; align-items: center;
             border-bottom: 2px solid rgba(138, 43, 226, 0.6);
-            padding-bottom: 8px; margin-bottom: 12px;
+            padding-bottom: 8px;
+            cursor: pointer; /* Kliknutím na hlavičku sa zroluje / otvorí */
         }
+        .legend.collapsed .legend-title-bar {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
         .legend-title-bar h2 { margin: 0; font-size: 16px; color: #fff; text-transform: uppercase; }
         
+        .legend-controls {
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .toggle-arrow {
+            color: #8a2be2;
+            font-size: 14px;
+            transition: transform 0.3s ease;
+        }
+        .legend.collapsed .toggle-arrow {
+            transform: rotate(-180deg);
+        }
+
         .sound-toggle-btn {
             background: rgba(138, 43, 226, 0.2);
             border: 1px solid #8a2be2; color: #fff;
@@ -67,6 +86,21 @@
             font-size: 13px; transition: background 0.2s;
         }
         .sound-toggle-btn:hover { background: rgba(138, 43, 226, 0.6); }
+
+        /* Obsah legendy – rolovanie */
+        .legend-content {
+            max-height: 70vh;
+            overflow-y: auto;
+            transition: max-height 0.3s ease-in-out, opacity 0.2s ease-in-out, margin-top 0.3s ease-in-out;
+            opacity: 1;
+            margin-top: 12px;
+        }
+        .legend.collapsed .legend-content {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+            overflow: hidden;
+        }
 
         .legend-header {
             display: flex; align-items: center; justify-content: space-between;
@@ -153,25 +187,31 @@
         </a>
 
         <!-- Legenda -->
-        <div class="legend">
-            <div class="legend-title-bar">
+        <div class="legend" id="legendBox">
+            <div class="legend-title-bar" onclick="toggleLegend()">
                 <h2>Územia</h2>
-                <button class="sound-toggle-btn" id="soundBtn" onclick="toggleAudio()" title="Vypnúť/Zapnúť zvuky">
-                    <i class="fa-solid fa-volume-high" id="soundIcon"></i>
-                </button>
+                <div class="legend-controls">
+                    <button class="sound-toggle-btn" id="soundBtn" onclick="event.stopPropagation(); toggleAudio();" title="Vypnúť/Zapnúť zvuky">
+                        <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+                    </button>
+                    <i class="fa-solid fa-chevron-up toggle-arrow"></i>
+                </div>
             </div>
 
-            <div class="legend-header">
-                <h3>Gangy</h3>
-                <input type="checkbox" id="toggleGangs" class="custom-checkbox" checked onchange="toggleCategory('gang', this.checked)">
-            </div>
-            <div id="gangList"></div>
+            <!-- Zrolovatelný obsah -->
+            <div class="legend-content" id="legendContent">
+                <div class="legend-header">
+                    <h3>Gangy</h3>
+                    <input type="checkbox" id="toggleGangs" class="custom-checkbox" checked onchange="toggleCategory('gang', this.checked)">
+                </div>
+                <div id="gangList"></div>
 
-            <div class="legend-header" style="margin-top: 15px;">
-                <h3>MC Kluby</h3>
-                <input type="checkbox" id="toggleMCs" class="custom-checkbox" checked onchange="toggleCategory('mc', this.checked)">
+                <div class="legend-header" style="margin-top: 15px;">
+                    <h3>MC Kluby</h3>
+                    <input type="checkbox" id="toggleMCs" class="custom-checkbox" checked onchange="toggleCategory('mc', this.checked)">
+                </div>
+                <div id="mcList"></div>
             </div>
-            <div id="mcList"></div>
         </div>
     </div>
 
@@ -317,7 +357,7 @@
             gangList.innerHTML = ''; mcList.innerHTML = '';
 
             territoryData.forEach(item => {
-                const html = `<div class="legend-item" id="item-${item.id}" onclick="focusTerritory('${item.id}')" onmouseenter="playHoverSound()">
+                const html = `<div class="legend-item" id="item-${item.id}" onclick="handleLegendItemClick('${item.id}')" onmouseenter="playHoverSound()">
                     <div class="color-box" style="background: ${item.color};"></div> ${item.name}
                 </div>`;
                 if(item.category === 'gang') gangList.innerHTML += html;
@@ -331,6 +371,18 @@
             const group = category === 'gang' ? gangGroup : mcGroup;
             if (isVisible) map.addLayer(group);
             else map.removeLayer(group);
+        }
+
+        // Kliknutie na bod v legende: zroluje legendu + zaostrí územie
+        function handleLegendItemClick(id) {
+            toggleLegend(); // Zroluje obsah legendy
+            focusTerritory(id);
+        }
+
+        // Funkcia na zrolobnie/odrolobnie celej legendy
+        function toggleLegend() {
+            const legendBox = document.getElementById('legendBox');
+            legendBox.classList.toggle('collapsed');
         }
 
         function focusTerritory(id) {
