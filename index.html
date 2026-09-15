@@ -30,6 +30,27 @@
 
         .leaflet-top.leaflet-left { top: 15px; left: 15px; }
 
+        /* --- ŠTÝL PRE LEAFLET ZOOM TLAČIDLÁ (CMRP TEMA) --- */
+        .leaflet-control-zoom {
+            border: 1px solid rgba(138, 43, 226, 0.6) !important;
+            border-radius: 8px !important;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.8) !important;
+        }
+        .leaflet-control-zoom a {
+            background-color: rgba(19, 15, 30, 0.95) !important;
+            color: #ffffff !important;
+            border-bottom: 1px solid rgba(138, 43, 226, 0.3) !important;
+            transition: background 0.2s, color 0.2s;
+        }
+        .leaflet-control-zoom a:hover {
+            background-color: rgba(138, 43, 226, 0.4) !important;
+            color: #a855f7 !important;
+        }
+        .leaflet-control-zoom a:last-child {
+            border-bottom: none !important;
+        }
+
         .logo-link {
             position: absolute; top: 100px; left: 15px;
             z-index: 10000; display: inline-block;
@@ -71,7 +92,7 @@
         .toggle-arrow {
             color: #8a2be2;
             font-size: 14px;
-            cursor: pointer; /* Kliknutie funguje iba tu */
+            cursor: pointer;
             padding: 4px;
             transition: transform 0.3s ease;
         }
@@ -191,14 +212,12 @@
 
         <!-- Legenda -->
         <div class="legend" id="legendBox">
-            <!-- Odstránený onclick z celej lišty -->
             <div class="legend-title-bar">
                 <h2>Územia</h2>
                 <div class="legend-controls">
                     <button class="sound-toggle-btn" id="soundBtn" onclick="event.stopPropagation(); toggleAudio();" title="Vypnúť/Zapnúť zvuky">
                         <i class="fa-solid fa-volume-high" id="soundIcon"></i>
                     </button>
-                    <!-- Rolovanie sa spustí iba kliknutím na túto šípku -->
                     <i class="fa-solid fa-chevron-up toggle-arrow" onclick="toggleLegend()" title="Zrolovať/Odrolovať"></i>
                 </div>
             </div>
@@ -378,12 +397,10 @@
             else map.removeLayer(group);
         }
 
-        // Kliknutie na bod v legende už legendu NEROLUJE, iba zaostrí územie
         function handleLegendItemClick(id) {
             focusTerritory(id);
         }
 
-        // Funkcia na zrolobnie/odrolobnie celej legendy (volá sa len cez šípku)
         function toggleLegend() {
             playClickSound();
             const legendBox = document.getElementById('legendBox');
