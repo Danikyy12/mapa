@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTA V - Gang a MC Územia</title>
+    
+    <!-- Leaflet CSS & FontAwesome Pre Ikony -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #0d0d0d;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+        }
+        #map {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0d0d0d url('backgroundcmrp.png') center center / cover no-repeat !important;
+        }
+
+        .map-overlay-dark {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(13, 13, 13, 0.35);
+            pointer-events: none;
+            z-index: 400;
+        }
+
+        .leaflet-top.leaflet-left { top: 15px; left: 15px; }
+
+        .logo-link {
+            position: absolute; top: 100px; left: 15px;
+            z-index: 10000; display: inline-block;
+            border-radius: 50%; transition: transform 0.2s ease;
+        }
+        .logo-link:hover { transform: scale(1.08); }
+
+        .server-logo {
+            width: 100px; height: 100px; border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.9), 0 0 12px rgba(138, 43, 226, 0.7);
+            display: block; cursor: pointer;
+        }
+
+        /* Legenda */
+        .legend {
+            position: absolute; top: 20px; right: 20px; z-index: 10000;
+            background: rgba(19, 15, 30, 0.95); color: #ffffff; padding: 15px;
+            border-radius: 8px; border: 1px solid rgba(138, 43, 226, 0.6);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.9); max-height: 80vh;
+            min-width: 200px; overflow-y: auto;
+        }
+        .legend-title-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid rgba(138, 43, 226, 0.6);
+            padding-bottom: 8px; margin-bottom: 12px;
+        }
+        .legend-title-bar h2 { margin: 0; font-size: 16px; color: #fff; text-transform: uppercase; }
+        
+        .sound-toggle-btn {
+            background: rgba(138, 43, 226, 0.2);
+            border: 1px solid #8a2be2; color: #fff;
+            padding: 4px 8px; border-radius: 4px; cursor: pointer;
+            font-size: 13px; transition: background 0.2s;
+        }
+        .sound-toggle-btn:hover { background: rgba(138, 43, 226, 0.6); }
+
+        .legend-header {
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid #444; padding-bottom: 4px; margin-bottom: 8px;
+        }
+        .legend-header h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; }
+        
+        .legend-item { 
+            display: flex; align-items: center; margin-bottom: 5px; 
+            font-size: 13px; cursor: pointer; padding: 5px; border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        .legend-item:hover { background: rgba(138, 43, 226, 0.2); }
+        .color-box { width: 14px; height: 14px; margin-right: 10px; border-radius: 3px; flex-shrink: 0; }
+
+        /* Moderný Checkbox Štýl */
+        .custom-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background-color: rgba(13, 13, 13, 0.6);
+            border: 1px solid rgba(138, 43, 226, 0.7);
+            border-radius: 4px;
+            cursor: pointer;
+            display: grid;
+            place-content: center;
+            transition: all 0.2s ease-in-out;
+            outline: none;
+        }
+
+        .custom-checkbox:hover {
+            border-color: #a855f7;
+            box-shadow: 0 0 8px rgba(138, 43, 226, 0.5);
+        }
+
+        .custom-checkbox::before {
+            content: "\f00c";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 11px;
+            color: #ffffff;
+            transform: scale(0);
+            transition: transform 0.15s ease-in-out;
+        }
+
+        .custom-checkbox:checked {
+            background-color: #8a2be2;
+            border-color: #8a2be2;
+            box-shadow: 0 0 10px rgba(138, 43, 226, 0.8);
+        }
+
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+
+        /* Popup okno */
+        .leaflet-popup-content-wrapper {
+            background: rgba(19, 15, 30, 0.95); color: #fff;
+            border: 1px solid #8a2be2; border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+        }
+        .leaflet-popup-tip { background: rgba(19, 15, 30, 0.95); }
+        .popup-card { padding: 4px; text-align: center; }
+        .popup-card h4 { margin: 0; color: #8a2be2; font-size: 15px; font-weight: bold; }
+        .popup-card p { margin: 2px 0 0 0; font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+
+        .area-label {
+            background: transparent !important; border: none !important;
+            box-shadow: none !important; color: #ffffff; font-weight: bold;
+            font-size: 12px; text-shadow: 2px 2px 4px #000000, -2px -2px 4px #000000;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map">
+        <div class="map-overlay-dark"></div>
+
+        <!-- Logo -->
+        <a href="https://cmrp.eu" target="_blank" class="logo-link" title="CMRP.eu Web" onmouseenter="playHoverSound()">
+            <img src="logo.png" alt="CommunityRP Logo" class="server-logo" onerror="if(this.src.endsWith('logo.png')) this.src='logo.jpg';">
+        </a>
+
+        <!-- Legenda -->
+        <div class="legend">
+            <div class="legend-title-bar">
+                <h2>Územia</h2>
+                <button class="sound-toggle-btn" id="soundBtn" onclick="toggleAudio()" title="Vypnúť/Zapnúť zvuky">
+                    <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+                </button>
+            </div>
+
+            <div class="legend-header">
+                <h3>Gangy</h3>
+                <input type="checkbox" id="toggleGangs" class="custom-checkbox" checked onchange="toggleCategory('gang', this.checked)">
+            </div>
+            <div id="gangList"></div>
+
+            <div class="legend-header" style="margin-top: 15px;">
+                <h3>MC Kluby</h3>
+                <input type="checkbox" id="toggleMCs" class="custom-checkbox" checked onchange="toggleCategory('mc', this.checked)">
+            </div>
+            <div id="mcList"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // --- AUDIO ENGINE ---
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        window.addEventListener('click', initAudio, { once: true });
+
+        function playHoverSound() {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx || audioCtx.state !== 'running') return;
+
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.04);
+
+                gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.04);
+            } catch (e) {}
+        }
+
+        function playClickSound() {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx || audioCtx.state !== 'running') return;
+
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(350, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.08);
+            } catch (e) {}
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                playClickSound();
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark';
+            }
+        }
+
+        // --- MAPA SETUP ---
+        const mapWidth = 4096;
+        const mapHeight = 4096;
+        const bounds = [[0, 0], [mapHeight, mapWidth]];
+
+        const map = L.map('map', {
+            crs: L.CRS.Simple,
+            minZoom: -2,
+            maxZoom: 2,
+            maxBounds: bounds,
+            maxBoundsViscosity: 1.0
+        });
+
+        L.imageOverlay('mapa.jpg', bounds).addTo(map);
+        map.fitBounds(bounds);
+
+        const gangGroup = L.layerGroup().addTo(map);
+        const mcGroup = L.layerGroup().addTo(map);
+        const territories = {};
+        const territoryData = [];
+
+        function addTerritory(id, coords, name, color, fillColor, category) {
+            const targetGroup = category === 'gang' ? gangGroup : mcGroup;
+
+            const popupContent = `
+                <div class="popup-card">
+                    <h4>${name}</h4>
+                    <p>${category.toUpperCase()}</p>
+                </div>
+            `;
+
+            const poly = L.polygon(coords, {
+                color: color, fillColor: fillColor, fillOpacity: 0.5, weight: 2
+            }).addTo(targetGroup).bindPopup(popupContent);
+
+            poly.bindTooltip(name, { permanent: true, direction: 'center', className: 'area-label' }).openTooltip();
+
+            poly.on('mouseover', playHoverSound);
+            poly.on('click', playClickSound);
+
+            territories[id] = poly;
+            territoryData.push({ id, name, category, color });
+        }
+
+        // --- GANGY ---
+        addTerritory('ms13', [[653, 2030], [625, 2009], [623, 1992], [650, 1961], [689, 1995]], "MS13", '#000080', '#00008b', 'gang');
+        addTerritory('ttp', [[702, 1943], [677, 1924], [677, 1906], [693, 1890], [717, 1910], [702, 1944]], "Tree Top Piru", '#8b0000', '#8b0000', 'gang');
+        addTerritory('f13', [[805, 2030], [834, 2049], [852, 2048], [856, 2044], [855, 2029], [835, 1992], [804, 2029]], "Florencia 13", '#00ced1', '#40e0d0', 'gang');
+        addTerritory('ss38st', [[802, 1862], [769, 1833], [778, 1821], [804, 1821], [824, 1836], [802, 1862]], "SS38ST", '#000000', '#1a1a1a', 'gang');
+        addTerritory('p18', [[761, 1993], [730, 1967], [753, 1940], [779, 1970]], "Playboys 18", '#ffd700', '#ffff00', 'gang');
+
+        // --- MC ---
+        addTerritory('soa', [[1066, 1334], [1087, 1308], [1096, 1315], [1073, 1342], [1065, 1336]], "Son Of Anarchy", '#4d4d4d', '#808080', 'mc');
+        addTerritory('thelost', [[1293, 2184], [1308, 2200], [1286, 2223], [1276, 2212], [1293, 2187]], "The Lost", '#ff8c00', '#ffb347', 'mc');
+        addTerritory('mayans', [[2695, 2707], [2691, 2716], [2673, 2707], [2677, 2698], [2696, 2707]], "Mayans", '#d35400', '#e67e22', 'mc');
+        addTerritory('fallen', [[3502, 1947], [3530, 1947], [3532, 1977], [3504, 1978], [3503, 1948]], "Fallen Revenant", '#1a1a1a', '#333333', 'mc');
+        addTerritory('vanguard', [[747, 1710], [735, 1705], [731, 1696], [737, 1686], [753, 1695], [746, 1710]], "Black Vanguard", '#cc0000', '#ff0000', 'mc');
+        addTerritory('malditos', [[516, 2225], [491, 2223], [493, 2198], [517, 2201], [516, 2225]], "Malditos", '#ff8c00', '#ffa500', 'mc');
+
+        // Renderovanie Legendy
+        function renderLegend() {
+            const gangList = document.getElementById('gangList');
+            const mcList = document.getElementById('mcList');
+            gangList.innerHTML = ''; mcList.innerHTML = '';
+
+            territoryData.forEach(item => {
+                const html = `<div class="legend-item" id="item-${item.id}" onclick="focusTerritory('${item.id}')" onmouseenter="playHoverSound()">
+                    <div class="color-box" style="background: ${item.color};"></div> ${item.name}
+                </div>`;
+                if(item.category === 'gang') gangList.innerHTML += html;
+                else mcList.innerHTML += html;
+            });
+        }
+        renderLegend();
+
+        function toggleCategory(category, isVisible) {
+            playClickSound();
+            const group = category === 'gang' ? gangGroup : mcGroup;
+            if (isVisible) map.addLayer(group);
+            else map.removeLayer(group);
+        }
+
+        function focusTerritory(id) {
+            playClickSound();
+            const polygon = territories[id];
+            if (!polygon) return;
+
+            if (!map.hasLayer(gangGroup)) map.addLayer(gangGroup);
+            if (!map.hasLayer(mcGroup)) map.addLayer(mcGroup);
+            document.getElementById('toggleGangs').checked = true;
+            document.getElementById('toggleMCs').checked = true;
+
+            map.flyToBounds(polygon.getBounds(), { maxZoom: 1, duration: 1 });
+
+            let count = 0;
+            const originalOpacity = polygon.options.fillOpacity;
+
+            const interval = setInterval(() => {
+                polygon.setStyle({ fillOpacity: count % 2 === 0 ? 0.9 : 0.2 });
+                count++;
+                if (count >= 6) {
+                    clearInterval(interval);
+                    polygon.setStyle({ fillOpacity: originalOpacity });
+                    polygon.openPopup();
+                }
+            }, 250);
+        }
+    </script>
+</body>
+</html>
