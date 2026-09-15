@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
@@ -57,7 +56,6 @@
             display: flex; justify-content: space-between; align-items: center;
             border-bottom: 2px solid rgba(138, 43, 226, 0.6);
             padding-bottom: 8px;
-            cursor: pointer; /* Kliknutím na hlavičku sa zroluje / otvorí */
         }
         .legend.collapsed .legend-title-bar {
             border-bottom: none;
@@ -73,7 +71,12 @@
         .toggle-arrow {
             color: #8a2be2;
             font-size: 14px;
+            cursor: pointer; /* Kliknutie funguje iba tu */
+            padding: 4px;
             transition: transform 0.3s ease;
+        }
+        .toggle-arrow:hover {
+            color: #a855f7;
         }
         .legend.collapsed .toggle-arrow {
             transform: rotate(-180deg);
@@ -188,13 +191,15 @@
 
         <!-- Legenda -->
         <div class="legend" id="legendBox">
-            <div class="legend-title-bar" onclick="toggleLegend()">
+            <!-- Odstránený onclick z celej lišty -->
+            <div class="legend-title-bar">
                 <h2>Územia</h2>
                 <div class="legend-controls">
                     <button class="sound-toggle-btn" id="soundBtn" onclick="event.stopPropagation(); toggleAudio();" title="Vypnúť/Zapnúť zvuky">
                         <i class="fa-solid fa-volume-high" id="soundIcon"></i>
                     </button>
-                    <i class="fa-solid fa-chevron-up toggle-arrow"></i>
+                    <!-- Rolovanie sa spustí iba kliknutím na túto šípku -->
+                    <i class="fa-solid fa-chevron-up toggle-arrow" onclick="toggleLegend()" title="Zrolovať/Odrolovať"></i>
                 </div>
             </div>
 
@@ -357,7 +362,7 @@
             gangList.innerHTML = ''; mcList.innerHTML = '';
 
             territoryData.forEach(item => {
-                const html = `<div class="legend-item" id="item-${item.id}" onclick="handleLegendItemClick('${item.id}')" onmouseenter="playHoverSound()">
+                const html = `<div class="legend-item" id="item-${item.id}" onclick="focusTerritory('${item.id}')" onmouseenter="playHoverSound()">
                     <div class="color-box" style="background: ${item.color};"></div> ${item.name}
                 </div>`;
                 if(item.category === 'gang') gangList.innerHTML += html;
@@ -373,14 +378,14 @@
             else map.removeLayer(group);
         }
 
-        // Kliknutie na bod v legende: zroluje legendu + zaostrí územie
+        // Kliknutie na bod v legende už legendu NEROLUJE, iba zaostrí územie
         function handleLegendItemClick(id) {
-            toggleLegend(); // Zroluje obsah legendy
             focusTerritory(id);
         }
 
-        // Funkcia na zrolobnie/odrolobnie celej legendy
+        // Funkcia na zrolobnie/odrolobnie celej legendy (volá sa len cez šípku)
         function toggleLegend() {
+            playClickSound();
             const legendBox = document.getElementById('legendBox');
             legendBox.classList.toggle('collapsed');
         }
